@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Module 3 sort: resources, benchmarking and the 7S</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #1d2356;
+  --red: #d7002a;
+  --yellow: #f5c242;
+  --paper: #f4f5fa;
+  --surface: #ffffff;
+  --ink: #161a3a;
+  --muted: #5b6080;
+  --line: #d5d8e8;
+  --card: #ffffff;
+  --card-ink: #161a3a;
+  --good: #1f7a4d;
+  --good-bg: #e3f4ea;
+  --bad: #b3122e;
+  --bad-bg: #fbe6ea;
+  --select: #f5c242;
+  --zone: #eef0f8;
+  --zone-hover: #e2e6f6;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12152e;
+    --surface: #1b1f44;
+    --ink: #eef0fb;
+    --muted: #a7acd0;
+    --line: #333a6e;
+    --card: #262b5a;
+    --card-ink: #eef0fb;
+    --good: #6fd4a0;
+    --good-bg: #173b2c;
+    --bad: #ff8a9d;
+    --bad-bg: #44192a;
+    --zone: #1f2450;
+    --zone-hover: #2a3066;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12152e;
+  --surface: #1b1f44;
+  --ink: #eef0fb;
+  --muted: #a7acd0;
+  --line: #333a6e;
+  --card: #262b5a;
+  --card-ink: #eef0fb;
+  --good: #6fd4a0;
+  --good-bg: #173b2c;
+  --bad: #ff8a9d;
+  --bad-bg: #44192a;
+  --zone: #1f2450;
+  --zone-hover: #2a3066;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+}
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px clamp(14px, 3vw, 32px) 40px; }
+
+header.top {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;
+  border-bottom: 4px solid var(--navy);
+  padding-bottom: 14px; margin-bottom: 18px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) header.top { border-bottom-color: var(--yellow); } }
+:root[data-theme="dark"] header.top { border-bottom-color: var(--yellow); }
+.course { margin: 0 0 4px; color: var(--muted); font-size: 15px; }
+h1 {
+  font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif;
+  font-weight: 800; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.05; margin: 0;
+  letter-spacing: -0.01em;
+}
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tab {
+  border: 2px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 8px 16px; cursor: pointer; font-weight: 700;
+}
+.tab[aria-selected="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tab[aria-selected="true"] { background: var(--yellow); border-color: var(--yellow); color: #161a3a; } }
+:root[data-theme="dark"] .tab[aria-selected="true"] { background: var(--yellow); border-color: var(--yellow); color: #161a3a; }
+
+.round-head { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; margin-bottom: 16px; }
+.round-title {
+  font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif;
+  font-weight: 800; font-size: clamp(22px, 2.6vw, 30px); margin: 0 0 6px; line-height: 1.15;
+}
+.round-title .mark { background: var(--yellow); color: #161a3a; padding: 0 8px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.round-title .rest { background: var(--navy); color: #fff; padding: 0 8px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.round-intro { margin: 0; max-width: 72ch; color: var(--muted); }
+.round-intro strong { color: var(--ink); }
+.explain { margin: 10px 0 0; max-width: 80ch; padding: 10px 12px; border-left: 5px solid var(--yellow); background: var(--surface); border-radius: 8px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; align-items: center; }
+.btn {
+  border: 2px solid var(--navy); background: var(--surface); color: var(--ink);
+  border-radius: 10px; padding: 9px 14px; cursor: pointer; font-weight: 700;
+}
+.btn.primary { background: var(--red); border-color: var(--red); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { border-color: var(--line); } }
+:root[data-theme="dark"] .btn { border-color: var(--line); }
+.timer {
+  font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif; font-weight: 700;
+  font-size: 22px; min-width: 76px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.timer.low { color: var(--red); }
+.score { font-weight: 700; min-width: 120px; margin-left: 6px; }
+
+.board { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .board { grid-template-columns: 1fr; } .round-head { grid-template-columns: 1fr; } .controls { justify-content: flex-start; } }
+
+.pile {
+  background: var(--surface); border: 2px dashed var(--line); border-radius: 14px; padding: 12px;
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 10px);
+  max-height: calc(100vh - 40px); overflow-y: auto;
+}
+@media (max-width: 860px) { .pile { position: static; max-height: none; } }
+.pile h2, .zones h2 {
+  font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif;
+  font-size: 18px; margin: 0 0 8px; font-weight: 700;
+}
+.pile-hint { font-size: 14px; color: var(--muted); margin: 0 0 10px; }
+.pile-list { display: flex; flex-direction: column; gap: 8px; }
+.pile-empty { color: var(--muted); font-style: italic; font-size: 15px; padding: 8px 2px; }
+
+.card {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: var(--card); color: var(--card-ink);
+  border: 2px solid var(--line); border-left: 6px solid var(--navy);
+  border-radius: 10px; padding: 9px 11px; font-size: 15.5px; line-height: 1.35;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-left-color: var(--yellow); } }
+:root[data-theme="dark"] .card { border-left-color: var(--yellow); }
+.card:hover { border-color: var(--muted); }
+.card[aria-pressed="true"] { outline: 3px solid var(--select); outline-offset: 2px; border-color: var(--select); }
+.card.correct { background: var(--good-bg); border-color: var(--good); border-left-color: var(--good); }
+.card.wrong { background: var(--bad-bg); border-color: var(--bad); border-left-color: var(--bad); }
+.card .verdict { display: block; font-size: 13.5px; margin-top: 4px; font-weight: 700; }
+.card.correct .verdict { color: var(--good); }
+.card.wrong .verdict { color: var(--bad); }
+
+.zones { display: flex; flex-direction: column; gap: 14px; }
+.group { background: var(--surface); border-radius: 14px; padding: 12px; border: 1px solid var(--line); }
+.group-label { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; }
+.group-label h2 { margin: 0; }
+.group-label span { color: var(--muted); font-size: 14px; }
+.zone-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+.zone {
+  background: var(--zone); border: 2px solid transparent; border-radius: 12px;
+  padding: 8px; min-height: 96px; display: flex; flex-direction: column; gap: 6px;
+}
+.zone.armed { border-color: var(--select); cursor: pointer; }
+.zone.armed:hover, .zone.over { background: var(--zone-hover); }
+.zone-head {
+  display: block; width: 100%; text-align: left; background: none; border: 0; padding: 2px 2px 4px; cursor: pointer;
+}
+.zone-head b { display: block; font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif; font-size: 16px; }
+.zone-head small { display: block; color: var(--muted); font-size: 13px; line-height: 1.3; }
+.zone .card { font-size: 14.5px; }
+
+/* Round 2 matrix */
+.matrix { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 10px; }
+.matrix .colhead, .matrix .rowhead {
+  font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif; font-weight: 700;
+}
+.matrix .colhead { padding: 6px 8px; border-bottom: 3px solid var(--red); }
+.matrix .colhead small, .matrix .rowhead small { display: block; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-weight: 400; color: var(--muted); font-size: 13px; line-height: 1.3; }
+.matrix .rowhead { padding: 8px; border-left: 5px solid var(--navy); background: var(--surface); border-radius: 8px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .matrix .rowhead { border-left-color: var(--yellow); } }
+:root[data-theme="dark"] .matrix .rowhead { border-left-color: var(--yellow); }
+.matrix .corner { }
+@media (max-width: 700px) {
+  .matrix { grid-template-columns: 1fr; }
+  .matrix .colhead, .matrix .corner { display: none; }
+  .matrix .zone .zone-head small.mobile-only { display: block; }
+}
+.zone-head small.mobile-only { display: none; }
+
+.feedback {
+  margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+}
+.feedback h2 { font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif; font-size: 20px; margin: 0 0 6px; }
+.feedback p { margin: 0 0 8px; max-width: 78ch; }
+.feedback ul { margin: 6px 0 0; padding-left: 20px; }
+.feedback li { margin-bottom: 8px; max-width: 80ch; }
+.feedback li b { display: block; }
+.feedback .ok { color: var(--good); }
+.feedback .no { color: var(--bad); }
+.link-a1 { margin-top: 10px; padding: 10px 12px; border-left: 5px solid var(--yellow); background: var(--zone); border-radius: 8px; max-width: 80ch; }
+
+
+.levels { display: flex; flex-direction: column; gap: 12px; }
+.levels .zone { min-height: 120px; }
+.ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.plain-list { display: flex; flex-direction: column; gap: 6px; }
+.ev-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.ev-card .card { border-width: 0 0 0 6px; border-radius: 8px; }
+.chips { border: 0; margin: 0; padding: 0 2px 2px; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips legend { font-size: 13px; color: var(--muted); padding: 0 0 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; line-height: 1.2; padding: 5px 9px; border: 1.5px solid var(--line); border-radius: 999px; cursor: pointer; background: var(--surface); }
+.chip:has(input:checked) { background: var(--navy); border-color: var(--navy); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip:has(input:checked) { background: var(--yellow); border-color: var(--yellow); color: #161a3a; } }
+:root[data-theme="dark"] .chip:has(input:checked) { background: var(--yellow); border-color: var(--yellow); color: #161a3a; }
+.chip input { margin: 0; accent-color: var(--red); }
+.ev-verdict { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; font-weight: 700; padding: 0 4px 4px; }
+.ev-verdict .ok { color: var(--good); }
+.ev-verdict .no { color: var(--bad); }
+.ev-key ul { margin: 0; padding-left: 18px; columns: 2 260px; }
+.ev-key li { margin-bottom: 4px; break-inside: avoid; }
+.ev-key h2 { font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif; font-size: 18px; margin: 0 0 8px; }
+dialog#pass-dialog { border: 0; border-radius: 14px; padding: 20px 22px; background: var(--surface); color: var(--ink); max-width: 380px; width: calc(100% - 32px); box-shadow: 0 20px 60px rgba(10,14,40,.35); }
+dialog#pass-dialog::backdrop { background: rgba(10,14,40,.55); }
+#pass-dialog h2 { font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif; font-size: 20px; margin: 0 0 6px; }
+#pass-dialog p { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+#pass-dialog label { display: block; font-weight: 700; margin-bottom: 4px; }
+#pass-input { width: 100%; font: inherit; padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }
+.pass-error { color: var(--bad) !important; font-weight: 700; margin: 8px 0 0 !important; }
+.pass-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .card, .zone { transition: background-color .15s ease, border-color .15s ease; }
+}
+footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="course">MKTG1416/1471 Digital Marketing Strategy and Planning, Module 3</p>
+      <h1>Sort it out: resources, benchmarking and the 7S</h1>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Rounds">
+      <button class="tab" role="tab" id="tab-1" aria-selected="true" data-round="0">Round 1: what the company has</button>
+      <button class="tab" role="tab" id="tab-2" aria-selected="false" data-round="1">Round 2: what you benchmark and how you prove it</button>
+      <button class="tab" role="tab" id="tab-3" aria-selected="false" data-round="2">Round 3: the McKinsey 7S</button>
+    </div>
+  </header>
+
+  <section class="round-head">
+    <div>
+      <h2 class="round-title" id="round-title"></h2>
+      <p class="round-intro" id="round-intro"></p>
+      <p class="explain" id="round-explain" hidden></p>
+    </div>
+    <div class="controls">
+      <span class="timer" id="timer" aria-live="off">15:00</span>
+      <button class="btn" id="timer-btn">Start timer</button>
+      <button class="btn primary" id="check-btn">Check answers</button>
+      <button class="btn" id="reveal-btn">Show answers</button>
+      <button class="btn" id="reset-btn">Start again</button>
+      <span class="score" id="score" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <div class="board">
+    <aside class="pile" aria-labelledby="pile-h">
+      <h2 id="pile-h">Cards to sort</h2>
+      <p class="pile-hint">Tap a card, then tap the box it belongs in. Tap a placed card to move it again.</p>
+      <div class="pile-list" id="pile"></div>
+    </aside>
+    <section class="zones" id="zones" aria-label="Places to sort cards"></section>
+  </div>
+
+  <section class="feedback" id="feedback" hidden aria-live="polite"></section>
+
+  <dialog id="pass-dialog" aria-labelledby="pass-title">
+    <form method="dialog" id="pass-form">
+      <h2 id="pass-title">Enter the lecturer passcode</h2>
+      <p>The answers and explanations are shown once the passcode is entered.</p>
+      <label for="pass-input">Passcode</label>
+      <input id="pass-input" type="password" autocomplete="off" required>
+      <p class="pass-error" id="pass-error" hidden>That passcode isn’t right. Try again.</p>
+      <div class="pass-actions">
+        <button type="button" class="btn" id="pass-cancel">Cancel</button>
+        <button type="submit" class="btn primary">Show answers</button>
+      </div>
+    </form>
+  </dialog>
+
+  <footer>Work in pairs. Agree on each card before you place it, then check your answers together.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ROUNDS = [
+    {
+      minutes: 15,
+      title: ["Round 1", "What does the company have, and what can it do?"],
+      intro: "Sort each example into one of the seven <strong>resource types</strong>, or decide that it describes a <strong>capability</strong> or a <strong>core competence</strong>. Some cards are deliberately tricky, so discuss each one with your partner before placing it. Allow about 15 minutes to sort and 5 minutes to check. Assignment 1 asks you to explain how your client\u2019s internal resources support its performance, so you need to name them precisely.",
+      a1: "Link to Assignment 1: at business level, include sub-criteria on the client\u2019s resources, and say whether each is tangible or intangible. Then explain which capabilities turn those resources into results, and whether any of them is a true core competence.",
+      groups: [
+        { label: "Tangible resources", note: "can be seen, touched or counted", zones: [
+          { id: "fin", name: "Financial", hint: "cash, credit, investor backing" },
+          { id: "phy", name: "Physical", hint: "stores, buildings, vehicles, equipment" },
+          { id: "tech", name: "Technological", hint: "systems, data centres, patents, trade secrets" },
+          { id: "org", name: "Organisational", hint: "structures, procedures, controls" }
+        ]},
+        { label: "Intangible resources", note: "built up over time, hard to see", zones: [
+          { id: "hum", name: "Human", hint: "skills, knowledge, experience" },
+          { id: "inn", name: "Innovation", hint: "capacity for new ideas" },
+          { id: "rep", name: "Reputational", hint: "brand, trust, track record" }
+        ]},
+        { label: "What the company does", note: "resources put to work", zones: [
+          { id: "cap", name: "Capability", hint: "an activity the firm does well" },
+          { id: "core", name: "Core competence", hint: "a capability that is valuable, rare and hard to copy" }
+        ]}
+      ],
+      cards: [
+        { id: "r1", text: "Vingroup\u2019s money, which keeps VinFast expanding despite heavy losses", ans: "fin", why: "Funding the company can draw on is a financial resource. VinFast lost about US$3.9 billion in 2025 and could keep growing only because of its parent\u2019s backing." },
+        { id: "r13", text: "Netflix borrowing billions of dollars to pay for its own shows before they earned money", ans: "fin", why: "Access to borrowing is a financial resource. It let Netflix invest in original content years before that content paid for itself." },
+        { id: "r2", text: "B\u00e1ch H\u00f3a Xanh\u2019s network of about 2,300 grocery stores and its own distribution centres", ans: "phy", why: "Stores and warehouses are physical resources. They also matter for digital marketing, because stores can act as local bases for online orders." },
+        { id: "r14", text: "Vietnam Airlines\u2019 fleet of aircraft", ans: "phy", why: "Aircraft are equipment you can see and count: a physical resource. On their own they don\u2019t create an advantage; how the airline uses them does." },
+        { id: "r15", text: "IKEA\u2019s large warehouse-style stores on the edge of cities", ans: "phy", why: "Buildings and their locations are physical resources. Customers collect flat-packed furniture from the warehouse area themselves." },
+        { id: "r3", text: "FPT\u2019s new data centre in Saigon Hi-Tech Park", ans: "tech", why: "A data centre is technological infrastructure that supports FPT\u2019s cloud and AI services." },
+        { id: "r4", text: "Apple\u2019s own chip designs, manufactured under contract by another company", ans: "tech", why: "A technological resource. Apple doesn\u2019t make the chips, but it controls them through its designs and contracts. A resource can be owned or controlled." },
+        { id: "r16", text: "Coca-Cola\u2019s secret drink formula, protected as a trade secret for more than a century", ans: "tech", why: "In this classification, patents and trade secrets count as technological resources. The famous brand is a separate, reputational resource." },
+        { id: "r17", text: "MoMo\u2019s e-wallet app and payment system", ans: "tech", why: "The app and the systems behind it are technological resources. What MoMo does with them, such as processing payments quickly and securely, would be a capability." },
+        { id: "r5", text: "Long Ch\u00e2u\u2019s standard store procedures and central reporting across about 2,400 pharmacies", ans: "org", why: "Written procedures and reporting lines are organisational resources. They are tangible because they are documented." },
+        { id: "r18", text: "McDonald\u2019s detailed operations manual and restaurant inspection system", ans: "org", why: "Formal procedures and control systems are organisational resources. They are why a McDonald\u2019s meal tastes much the same in different countries." },
+        { id: "r6", text: "FPT\u2019s large workforce of software engineers", ans: "hum", why: "The knowledge and skills of people are human resources, often the hardest to replace." },
+        { id: "r19", text: "Pixar\u2019s experienced animators and story teams", ans: "hum", why: "The talent and experience of Pixar\u2019s people is a human resource. Their skill is what turns software and ideas into successful films." },
+        { id: "r7", text: "FPT AI Factory\u2019s research teams and pipeline of new AI services", ans: "inn", why: "The capacity to create new products and ideas is an innovation resource. FPT launched 11 new AI services in 2025." },
+        { id: "r20", text: "3M letting staff spend some work time on their own ideas, which led to the Post-it Note", ans: "inn", why: "Time and freedom to experiment build an innovation resource: the company\u2019s capacity to come up with new products." },
+        { id: "r8", text: "Vinamilk\u2019s 13 years as Vietnam\u2019s most chosen dairy brand", ans: "rep", why: "Brand trust built over decades is a reputational resource that a new competitor can\u2019t buy quickly." },
+        { id: "r21", text: "Patagonia\u2019s reputation for caring about the environment", ans: "rep", why: "How customers see the brand is a reputational resource. It lets Patagonia charge more and attract loyal customers who share its values." },
+        { id: "r9", text: "Shopee running national mega-sale events such as 9.9 and 11.11", ans: "cap", why: "This is something Shopee does well by combining money, technology, sellers and logistics: a capability, not a resource." },
+        { id: "r10", text: "Grab matching drivers to orders quickly across rides, food and groceries", ans: "cap", why: "Matching is an activity built from Grab\u2019s app, data and driver network: a capability. Rivals can build similar matching, so it isn\u2019t clearly a core competence." },
+        { id: "r22", text: "Domino\u2019s delivering pizzas quickly and letting customers track each order live", ans: "cap", why: "Fast delivery with live tracking combines stores, drivers and software: a capability. Other pizza chains can and do copy it, so it isn\u2019t clearly a core competence." },
+        { id: "r11", text: "Apple combining hardware, software and services into one ecosystem rivals struggle to copy", ans: "core", why: "Valuable to customers, rare, and very hard to imitate because Apple controls chips, software and devices together. That passes the VRIN test: a core competence." },
+        { id: "r12", text: "Vietjet keeping its cost per seat low through quick turnarounds and high aircraft use", ans: "core", why: "Many airlines fly planes; few run a low-cost model this efficiently. It\u2019s central to how Vietjet competes and hard to copy, so it counts as a core competence." },
+        { id: "r23", text: "Toyota\u2019s production system, which rivals have studied for decades without fully copying", ans: "core", why: "It delivers high quality at low cost, is central to Toyota\u2019s advantage, and has proved very hard to imitate: a core competence." },
+        { id: "r24", text: "Honda\u2019s engine expertise, used in its cars, motorbikes, lawnmowers and generators", ans: "core", why: "This is Prahalad and Hamel\u2019s classic example: a core competence that gives access to several different markets." }
+      ]
+    },
+    {
+      minutes: 15,
+      kind: "evidence",
+      title: ["Round 2", "Which level, and what evidence would you use?"],
+      intro: "Imagine you are benchmarking a Vietnamese coffee chain against two rivals. Each card is a possible sub-criterion for your benchmarking table. <strong>Step 1:</strong> place it at the right level. <strong>Step 2:</strong> once it\u2019s placed, tick the evidence you would use to score it from 0 to 10. Some sub-criteria need one source; many need a number <em>and</em> a judgement.",
+      explain: "Why evidence matters: the Assignment 1 brief asks you to justify every score with credible evidence, and to assess both performance outcomes and marketing approaches. In the in-class slides, these are <strong>performance benchmarking</strong> (comparing numbers, such as ratings or prices) and <strong>practice benchmarking</strong> (judging how something is done, such as how clear the positioning is). The evidence options below include the tools from the slide on benchmarking digital assets.",
+      a1: "Link to Assignment 1: your benchmarking table needs an evidence column. For each sub-criterion, name the source behind the score. Strong scores usually combine a number with a judgement, for example review ratings plus the themes customers complain about.",
+      levels: [
+        { id: "bus", name: "Business level", hint: "strategy, business model, partnerships, resources" },
+        { id: "mkt", name: "Functional marketing level", hint: "target customers, positioning, pricing, promotion, distribution" },
+        { id: "dig", name: "Operational and digital level", hint: "website, app, SEO, content, social media" }
+      ],
+      evidence: [
+        { id: "rev", name: "Reviews and ratings", hint: "Google, app stores, booking sites" },
+        { id: "seo", name: "Website speed and SEO tools", hint: "PageSpeed Insights, Seobility, Semrush" },
+        { id: "traffic", name: "Website traffic tools", hint: "Similarweb" },
+        { id: "social", name: "Social media analytics", hint: "platform insights, RivalIQ" },
+        { id: "price", name: "Price and menu checks", hint: "stores, apps, websites" },
+        { id: "reports", name: "Company reports and news", hint: "annual reports, press releases, news" },
+        { id: "survey", name: "Surveys and industry reports", hint: "Kantar, Q&Me, Statista" },
+        { id: "judge", name: "Your own review", hint: "read or watch the content and judge it" },
+        { id: "try", name: "Try it yourself", hint: "order, visit or contact the brand" }
+      ],
+      cards: [
+        { id: "b1", text: "Number of stores and cities each chain covers", ans: "bus", req: ["reports"], ok: [], why: "A count of physical resources at business level. Company announcements and news give the figure." },
+        { id: "b2", text: "Revenue and profit growth over the last two years", ans: "bus", req: ["reports"], ok: ["survey"], why: "A business result. Annual reports or financial news are the main source; industry reports can add context." },
+        { id: "b3", text: "Business model: own stores, franchising, or packaged coffee sold in supermarkets", ans: "bus", req: ["reports", "judge"], ok: ["try"], why: "You find the facts in reports and news, then judge how well each model creates value. A number alone can\u2019t score a business model." },
+        { id: "b4", text: "Partnerships with delivery apps, shopping malls and coffee suppliers", ans: "bus", req: ["reports"], ok: ["judge", "try"], why: "Partnerships sit at business level in the brief. News and press releases show who each chain works with; checking delivery apps can confirm it." },
+        { id: "b5", text: "Brand reputation and customer trust", ans: "bus", req: ["rev", "survey"], ok: ["reports", "social", "judge"], why: "Reputation is an intangible resource. Ratings give the number; brand surveys such as Kantar\u2019s show how widely the brand is chosen; review themes explain why." },
+        { id: "b6", text: "Sustainability commitments, such as how coffee beans are sourced", ans: "bus", req: ["reports", "judge"], ok: ["survey"], why: "Company reports describe the commitments; you then judge how credible and distinctive they are." },
+        { id: "m1", text: "Which target customers each chain focuses on", ans: "mkt", req: ["judge"], ok: ["survey", "social"], why: "You infer the target from the content, store design and offers, then support it with surveys or social audience data where available." },
+        { id: "m2", text: "Clarity and distinctiveness of each brand\u2019s positioning", ans: "mkt", req: ["judge"], ok: ["survey"], why: "A practice criterion: you read and watch each brand\u2019s communication and judge how clearly it stands apart." },
+        { id: "m3", text: "Pricing: price of a medium iced milk coffee and each chain\u2019s pricing strategy", ans: "mkt", req: ["price", "judge"], ok: ["try"], why: "The price is a number you collect; the strategy (budget, mid-range or premium) is a judgement you make from it. Good scores combine both." },
+        { id: "m4", text: "Promotions and loyalty programme offers", ans: "mkt", req: ["try", "judge"], ok: ["social"], why: "Join the loyalty programme or check the app to see the offers, then judge whether they suit the target customers." },
+        { id: "m5", text: "Distribution: where customers can buy (stores, delivery apps, supermarkets)", ans: "mkt", req: ["try"], ok: ["reports", "judge"], why: "Check delivery apps, stores and supermarket shelves yourself; company news can confirm the wider picture." },
+        { id: "m6", text: "Share of Gen Z coffee drinkers who choose each brand", ans: "mkt", req: ["survey"], ok: [], why: "Only a survey or industry report can give this figure. If none exists, the brief allows you to infer carefully and state your assumption." },
+        { id: "d1", text: "App rating and the themes in app reviews", ans: "dig", req: ["rev"], ok: ["judge"], why: "App store ratings give the number; reading the reviews shows the recurring problems behind it." },
+        { id: "d2", text: "Website loading speed and SEO health", ans: "dig", req: ["seo"], ok: [], why: "Tools such as PageSpeed Insights, Seobility or Semrush measure this directly." },
+        { id: "d3", text: "Website traffic and how long visitors stay", ans: "dig", req: ["traffic"], ok: [], why: "Similarweb estimates visits, time on site and bounce rate. Treat the figures as estimates and state the date." },
+        { id: "d4", text: "Social media follower growth and engagement rate", ans: "dig", req: ["social"], ok: [], why: "Platform data or social analytics tools such as RivalIQ give these figures." },
+        { id: "d5", text: "Content themes and how well they match the brand\u2019s positioning", ans: "dig", req: ["judge"], ok: ["social"], why: "You have to watch and read the content to judge it. Engagement data can show which themes work best." },
+        { id: "d6", text: "How easy it is to order and pay in each chain\u2019s app", ans: "dig", req: ["try"], ok: ["rev"], why: "Test it yourself and count the steps; app reviews can confirm whether other customers find it easy." }
+      ]
+    },
+    {
+      minutes: 15,
+      title: ["Round 3", "Which of McKinsey\u2019s 7S does it describe?"],
+      intro: "The 7S model checks whether a company is set up to deliver its strategy. Sort each example into one of the seven elements. The three <strong>hard S\u2019s</strong> can be written down and changed by a management decision; the four <strong>soft S\u2019s</strong> live in people\u2019s behaviour and change slowly. Allow about 12 minutes to sort and 3 to check.",
+      explain: "Three pairs people often mix up. <strong>Structure or Systems?</strong> Structure is who reports to whom; systems are the processes and tools used every day. <strong>Style or Shared values?</strong> Style is how leaders behave; shared values are what the whole organisation believes. <strong>Staff or Skills?</strong> Staff is about the people: hiring, training, roles. Skills is what the organisation as a whole can do well, close to the idea of a capability.",
+      a1: "Link to Assignment 1: the brief asks how the client\u2019s internal resources support its performance. The 7S model helps explain why a score is high or low. For example, a weak social media score may come from staff (no content creator), style (slow approvals) or systems (no shared content calendar). Look for elements that don\u2019t fit the client\u2019s strategy.",
+      groups: [
+        { label: "Hard S\u2019s", note: "can be written down and changed by decision", zones: [
+          { id: "strategy", name: "Strategy", hint: "the plan for gaining and keeping an advantage" },
+          { id: "structure", name: "Structure", hint: "how teams are organised and who reports to whom" },
+          { id: "systems", name: "Systems", hint: "processes and tools used every day" }
+        ]},
+        { label: "Soft S\u2019s", note: "live in people\u2019s behaviour, change slowly", zones: [
+          { id: "values", name: "Shared values", hint: "core beliefs across the organisation" },
+          { id: "style", name: "Style", hint: "how leaders behave and decide" },
+          { id: "staff", name: "Staff", hint: "people: hiring, roles, training" },
+          { id: "skills", name: "Skills", hint: "what the organisation as a whole does well" }
+        ]}
+      ],
+      cards: [
+        { id: "s1", text: "FPT\u2019s stated aim to become an \u201cAI-first\u201d company", ans: "strategy", why: "A statement of where the company wants to compete and how: strategy. The 7S question is whether the other six elements are changing to support it." },
+        { id: "s2", text: "Nike shifting its focus back to sport and performance, and rebuilding relationships with retailers", ans: "strategy", why: "A choice about how Nike will compete: strategy. The team reorganisation that followed is a separate card, under structure." },
+        { id: "s3", text: "A coffee chain deciding to win Gen Z customers through delivery and its own app, rather than by opening more stores", ans: "strategy", why: "A decision about where and how to compete: strategy." },
+        { id: "st1", text: "Nike reorganising its teams by sport, such as running and basketball, instead of by men\u2019s, women\u2019s and kids\u2019", ans: "structure", why: "This changes how teams are grouped and who is responsible for what: structure. It followed the change in strategy." },
+        { id: "st2", text: "Moving the digital team out of the IT department so it reports to the marketing director", ans: "structure", why: "A change in reporting lines: structure. It ties digital work more closely to marketing goals." },
+        { id: "st3", text: "A central digital team supporting one digital specialist inside each brand team", ans: "structure", why: "This \u201chub and spoke\u201d arrangement, from the Smart Insights maturity model, is about how teams are organised: structure." },
+        { id: "sy1", text: "Starbucks linking ordering, payment and rewards in one app, so each purchase updates a single customer record", ans: "systems", why: "Connected tools and processes used every day: systems." },
+        { id: "sy2", text: "A weekly dashboard showing every campaign\u2019s results to the whole marketing team", ans: "systems", why: "A reporting tool and routine: systems. It also supports a culture of using data." },
+        { id: "sy3", text: "A CRM that brings customer data from the website, app and stores into one place", ans: "systems", why: "A technology system the team uses daily to manage customers: systems." },
+        { id: "v1", text: "Amazon\u2019s leadership principle of \u201ccustomer obsession\u201d", ans: "values", why: "A core belief meant to guide decisions across the whole company: shared values." },
+        { id: "v2", text: "Microsoft\u2019s shift under Satya Nadella towards a culture of learning rather than knowing everything", ans: "values", why: "A change in what people across the company believe and value: shared values. Leaders\u2019 behaviour (style) helped bring it about." },
+        { id: "v3", text: "A belief across the company that failed experiments are useful lessons, not mistakes to hide", ans: "values", why: "A widely held belief about risk and learning: shared values. McKinsey\u2019s Digital Quotient research found most companies describe their culture as risk-averse." },
+        { id: "l1", text: "Leaders who approve small digital tests quickly, because they can easily be reversed", ans: "style", why: "How leaders make decisions: style. This reflects Bezos\u2019s idea of \u201ctwo-way door\u201d decisions." },
+        { id: "l2", text: "A marketing director who insists on personally approving every Facebook post", ans: "style", why: "A leadership behaviour, in this case tight control: style. It can slow a team that needs to respond to trends quickly." },
+        { id: "l3", text: "A manager who holds a weekly open session where anyone can pitch a campaign idea", ans: "style", why: "How a leader involves the team in decisions: style." },
+        { id: "f1", text: "FPT running its own schools and university, building a long-term supply of trained people", ans: "staff", why: "How the company develops and recruits people: staff." },
+        { id: "f2", text: "A brand hiring data analysts and short-video creators for its marketing team", ans: "staff", why: "Decisions about which people and roles the team has: staff." },
+        { id: "f3", text: "A company paying for its marketers to complete Google and Meta training courses", ans: "staff", why: "Training and developing people: staff. If the training succeeds, it builds the organisation\u2019s skills." },
+        { id: "k1", text: "Booking.com\u2019s ability to run a very large number of website tests and act on the results", ans: "skills", why: "Something the organisation as a whole does well: skills. It depends on systems and culture, not one person." },
+        { id: "k2", text: "A brand\u2019s team being able to plan, host and sell through a livestream on TikTok Shop", ans: "skills", why: "An organisational ability that combines people, preparation and stock coordination: skills." },
+        { id: "k3", text: "Vietjet\u2019s ability to turn aircraft around quickly between flights", ans: "skills", why: "What the organisation is distinctively good at: skills. In Round 1 you met this as part of a core competence; in the 7S model it sits under skills." }
+      ]
+    }
+  ];
+
+  var state = ROUNDS.map(function () { return { place: {}, ev: {}, checked: false, revealed: false }; });
+  var current = 0;
+  var selected = null;
+  var unlocked = false;
+  var PASS_HASH = "6a4771192655f2915af6f43dadf1b941384d43331f73a043ff1db87a4dd1b46b";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var pileEl = $("pile"), zonesEl = $("zones"), feedbackEl = $("feedback"), scoreEl = $("score");
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  var order = ROUNDS.map(function (r) { return shuffle(r.cards.map(function (c) { return c.id; })); });
+
+  function zoneName(round, zid) {
+    var r = ROUNDS[round];
+    if (r.groups) {
+      for (var g = 0; g < r.groups.length; g++) for (var z = 0; z < r.groups[g].zones.length; z++) if (r.groups[g].zones[z].id === zid) return r.groups[g].zones[z].name;
+    }
+    if (r.levels) { var l = r.levels.filter(function (x) { return x.id === zid; })[0]; if (l) return l.name; }
+    return zid;
+  }
+  function evName(round, eid) { return ROUNDS[round].evidence.filter(function (e) { return e.id === eid; })[0].name; }
+  function cardById(round, cid) { return ROUNDS[round].cards.filter(function (c) { return c.id === cid; })[0]; }
+  function evList(cid) { return state[current].ev[cid] || []; }
+  function evResult(c) {
+    var picked = evList(c.id);
+    var allowed = c.req.concat(c.ok || []);
+    var missing = c.req.filter(function (e) { return picked.indexOf(e) < 0; });
+    var extra = picked.filter(function (e) { return allowed.indexOf(e) < 0; });
+    return { ok: missing.length === 0 && extra.length === 0, missing: missing, extra: extra };
+  }
+
+  function makeCard(c) {
+    var s = state[current], r = ROUNDS[current];
+    var placed = s.place[c.id];
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "card";
+    b.setAttribute("aria-pressed", selected === c.id ? "true" : "false");
+    b.dataset.id = c.id;
+    b.draggable = true;
+    b.textContent = c.text;
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      selected = (selected === c.id) ? null : c.id;
+      render();
+      var again = document.querySelector('.card[data-id="' + c.id + '"]');
+      if (again) again.focus();
+    });
+    b.addEventListener("dragstart", function (e) { selected = c.id; e.dataTransfer.setData("text/plain", c.id); });
+
+    var levelOk = placed === c.ans;
+    if (r.kind !== "evidence") {
+      if (s.checked && placed) {
+        b.classList.add(levelOk ? "correct" : "wrong");
+        var v = document.createElement("span");
+        v.className = "verdict";
+        v.textContent = levelOk ? "\u2713 Correct" : (unlocked ? "\u2717 Belongs in: " + zoneName(current, c.ans) : "\u2717 Not quite: try another box");
+        b.appendChild(v);
+      }
+      return b;
+    }
+
+    if (!placed) return b;
+    var wrap = document.createElement("div");
+    wrap.className = "ev-card";
+    wrap.appendChild(b);
+    var fs = document.createElement("fieldset");
+    fs.className = "chips";
+    var lg = document.createElement("legend"); lg.textContent = "Evidence you would use"; fs.appendChild(lg);
+    r.evidence.forEach(function (ev) {
+      var lab = document.createElement("label");
+      lab.className = "chip";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = evList(c.id).indexOf(ev.id) >= 0;
+      cb.addEventListener("change", function () {
+        var list = evList(c.id).slice();
+        var i = list.indexOf(ev.id);
+        if (cb.checked && i < 0) list.push(ev.id);
+        if (!cb.checked && i >= 0) list.splice(i, 1);
+        s.ev[c.id] = list; s.checked = false; s.revealed = false;
+        renderScore(); renderFeedback();
+        var card = wrap.querySelector(".card"); card.classList.remove("correct", "wrong");
+        var old = wrap.querySelector(".ev-verdict"); if (old) old.remove();
+      });
+      lab.appendChild(cb);
+      var t = document.createElement("span"); t.textContent = ev.name; lab.appendChild(t);
+      lab.title = ev.hint;
+      lab.addEventListener("click", function (e) { e.stopPropagation(); });
+      fs.appendChild(lab);
+    });
+    wrap.appendChild(fs);
+    if (s.checked) {
+      var er = evResult(c);
+      b.classList.add(levelOk && er.ok ? "correct" : "wrong");
+      var vd = document.createElement("div");
+      vd.className = "ev-verdict";
+      var lines = [];
+      lines.push(levelOk ? "\u2713 Level correct" : (unlocked ? "\u2717 Level: belongs in " + zoneName(current, c.ans) : "\u2717 Level: try another level"));
+      if (er.ok) lines.push("\u2713 Evidence works");
+      else if (!unlocked) {
+        if (er.missing.length) lines.push("\u2717 Evidence: something essential is missing");
+        if (er.extra.length) lines.push("\u2717 Evidence: one choice doesn\u2019t fit");
+      }
+      else {
+        if (er.missing.length) lines.push("\u2717 Also needs: " + er.missing.map(function (e) { return evName(current, e); }).join(", "));
+        if (er.extra.length) lines.push("\u2717 Not the best source: " + er.extra.map(function (e) { return evName(current, e); }).join(", "));
+      }
+      lines.forEach(function (ln) {
+        var p = document.createElement("span");
+        p.className = ln.charAt(0) === "\u2713" ? "ok" : "no";
+        p.textContent = ln;
+        vd.appendChild(p);
+      });
+      wrap.appendChild(vd);
+    }
+    return wrap;
+  }
+
+  function makeZone(zid, title, hint, mobileHint) {
+    var s = state[current];
+    var z = document.createElement("div");
+    z.className = "zone" + (selected ? " armed" : "");
+    z.dataset.zone = zid;
+    var head = document.createElement("button");
+    head.type = "button";
+    head.className = "zone-head";
+    head.setAttribute("aria-label", "Place selected card in " + (mobileHint || title));
+    var b = document.createElement("b"); b.textContent = title; head.appendChild(b);
+    if (hint) { var sm = document.createElement("small"); sm.textContent = hint; head.appendChild(sm); }
+    z.appendChild(head);
+    var inner = document.createElement("div");
+    inner.className = ROUNDS[current].kind === "evidence" ? "ev-grid" : "plain-list";
+    order[current].forEach(function (cid) { if (s.place[cid] === zid) inner.appendChild(makeCard(cardById(current, cid))); });
+    z.appendChild(inner);
+    function drop() {
+      if (!selected) return;
+      s.place[selected] = zid; s.checked = false; s.revealed = false;
+      selected = null; render();
+    }
+    head.addEventListener("click", drop);
+    z.addEventListener("click", function (e) { if (e.target === z || e.target === inner) drop(); });
+    z.addEventListener("dragover", function (e) { e.preventDefault(); z.classList.add("over"); });
+    z.addEventListener("dragleave", function () { z.classList.remove("over"); });
+    z.addEventListener("drop", function (e) { e.preventDefault(); z.classList.remove("over"); var id = e.dataTransfer.getData("text/plain"); if (id) { selected = id; drop(); } });
+    return z;
+  }
+
+  function renderZones() {
+    var r = ROUNDS[current];
+    zonesEl.innerHTML = "";
+    if (r.groups) {
+      r.groups.forEach(function (g) {
+        var box = document.createElement("div"); box.className = "group";
+        var lab = document.createElement("div"); lab.className = "group-label";
+        var h = document.createElement("h2"); h.textContent = g.label;
+        var n = document.createElement("span"); n.textContent = g.note;
+        lab.appendChild(h); lab.appendChild(n); box.appendChild(lab);
+        var grid = document.createElement("div"); grid.className = "zone-grid";
+        g.zones.forEach(function (zn) { grid.appendChild(makeZone(zn.id, zn.name, zn.hint)); });
+        box.appendChild(grid); zonesEl.appendChild(box);
+      });
+    } else {
+      var box2 = document.createElement("div"); box2.className = "group levels";
+      r.levels.forEach(function (lv) { box2.appendChild(makeZone(lv.id, lv.name, lv.hint)); });
+      zonesEl.appendChild(box2);
+      var key = document.createElement("div"); key.className = "group ev-key";
+      var kh = document.createElement("h2"); kh.textContent = "Evidence options"; key.appendChild(kh);
+      var ul = document.createElement("ul");
+      r.evidence.forEach(function (ev) { var li = document.createElement("li"); var bb = document.createElement("b"); bb.textContent = ev.name; li.appendChild(bb); li.appendChild(document.createTextNode(": " + ev.hint)); ul.appendChild(li); });
+      key.appendChild(ul); zonesEl.appendChild(key);
+    }
+  }
+
+  function renderPile() {
+    var s = state[current];
+    pileEl.innerHTML = "";
+    var left = order[current].filter(function (cid) { return !s.place[cid]; });
+    if (!left.length) {
+      var p = document.createElement("p"); p.className = "pile-empty";
+      p.textContent = s.checked ? "All cards placed and checked." : (ROUNDS[current].kind === "evidence" ? "All cards placed. Tick the evidence for each one, then check your answers." : "All cards placed. Check your answers when your pair agrees.");
+      pileEl.appendChild(p);
+    }
+    left.forEach(function (cid) { pileEl.appendChild(makeCard(cardById(current, cid))); });
+  }
+
+  function renderFeedback() {
+    var s = state[current], r = ROUNDS[current];
+    if (!s.checked) { feedbackEl.hidden = true; feedbackEl.innerHTML = ""; return; }
+    feedbackEl.hidden = false;
+    feedbackEl.innerHTML = "";
+    if (!unlocked) {
+      var lh = document.createElement("h2"); lh.textContent = "Checked";
+      var lp = document.createElement("p");
+      lp.textContent = "Green cards are right. Move the red ones and check again. Your lecturer will show the answers and explanations when everyone is ready.";
+      feedbackEl.appendChild(lh); feedbackEl.appendChild(lp);
+      return;
+    }
+    var h = document.createElement("h2"); h.textContent = s.revealed ? "Answers and explanations" : "Why each card goes where it does";
+    feedbackEl.appendChild(h);
+    var ul = document.createElement("ul");
+    order[current].forEach(function (cid) {
+      var c = cardById(current, cid);
+      var placed = s.place[cid];
+      var good = placed === c.ans && (r.kind !== "evidence" || evResult(c).ok);
+      var li = document.createElement("li");
+      var b = document.createElement("b");
+      var status = !placed ? "Not placed" : (good ? "Correct" : "Not quite");
+      b.className = good ? "ok" : "no";
+      var answer = zoneName(current, c.ans);
+      if (r.kind === "evidence") answer += "; evidence: " + c.req.map(function (e) { return evName(current, e); }).join(" + ") + (c.ok && c.ok.length ? " (also fine: " + c.ok.map(function (e) { return evName(current, e); }).join(", ") + ")" : "");
+      b.textContent = c.text + ": " + answer + " (" + status + ")";
+      li.appendChild(b);
+      li.appendChild(document.createTextNode(c.why));
+      ul.appendChild(li);
+    });
+    feedbackEl.appendChild(ul);
+    var a1 = document.createElement("p"); a1.className = "link-a1"; a1.textContent = r.a1;
+    feedbackEl.appendChild(a1);
+  }
+
+  function renderScore() {
+    var s = state[current], r = ROUNDS[current];
+    var placed = Object.keys(s.place).length;
+    if (s.revealed) { scoreEl.textContent = "Answers shown"; return; }
+    if (!s.checked) { scoreEl.textContent = placed + " of " + r.cards.length + " placed"; return; }
+    var levels = r.cards.filter(function (c) { return s.place[c.id] === c.ans; }).length;
+    if (r.kind === "evidence") {
+      var ev = r.cards.filter(function (c) { return s.place[c.id] && evResult(c).ok; }).length;
+      scoreEl.textContent = "Levels " + levels + "/" + r.cards.length + ", evidence " + ev + "/" + r.cards.length;
+    } else {
+      scoreEl.textContent = levels + " of " + r.cards.length + " correct";
+    }
+  }
+
+  function renderHead() {
+    var r = ROUNDS[current];
+    var t = $("round-title");
+    t.innerHTML = "";
+    var a = document.createElement("span"); a.className = "mark"; a.textContent = r.title[0];
+    var b = document.createElement("span"); b.className = "rest"; b.textContent = r.title[1];
+    t.appendChild(a); t.appendChild(document.createTextNode(" ")); t.appendChild(b);
+    $("round-intro").innerHTML = r.intro;
+    var ex = $("round-explain");
+    if (r.explain) { ex.innerHTML = r.explain; ex.hidden = false; } else { ex.hidden = true; ex.innerHTML = ""; }
+    document.querySelectorAll(".tab").forEach(function (tb) { tb.setAttribute("aria-selected", String(Number(tb.dataset.round) === current)); });
+    document.body.classList.toggle("evidence-round", r.kind === "evidence");
+  }
+
+  function render() { renderHead(); renderPile(); renderZones(); renderScore(); renderFeedback(); }
+
+  document.addEventListener("click", function (e) {
+    if (selected && !e.target.closest(".card") && !e.target.closest(".zone")) { selected = null; render(); }
+  });
+
+  $("check-btn").addEventListener("click", function () { state[current].checked = true; selected = null; render(); feedbackEl.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
+  function doReveal() {
+    var s = state[current];
+    ROUNDS[current].cards.forEach(function (c) { s.place[c.id] = c.ans; if (c.req) s.ev[c.id] = c.req.slice(); });
+    s.checked = true; s.revealed = true; selected = null; render();
+  }
+  function sha256(text) {
+    if (window.crypto && crypto.subtle && window.TextEncoder) {
+      return crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)).then(function (buf) {
+        return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+      });
+    }
+    return Promise.resolve(null);
+  }
+  var dlg = $("pass-dialog"), passInput = $("pass-input"), passErr = $("pass-error");
+  $("reveal-btn").addEventListener("click", function () {
+    if (unlocked) { doReveal(); return; }
+    passErr.hidden = true; passInput.value = "";
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    passInput.focus();
+  });
+  $("pass-cancel").addEventListener("click", function () { dlg.close ? dlg.close() : dlg.removeAttribute("open"); });
+  $("pass-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var typed = passInput.value.trim();
+    sha256(typed).then(function (hash) {
+      if (hash === PASS_HASH) {
+        unlocked = true;
+        dlg.close ? dlg.close() : dlg.removeAttribute("open");
+        doReveal();
+      } else {
+        passErr.hidden = false; passInput.select();
+      }
+    });
+  });
+  $("reset-btn").addEventListener("click", function () {
+    state[current] = { place: {}, ev: {}, checked: false, revealed: false };
+    order[current] = shuffle(ROUNDS[current].cards.map(function (c) { return c.id; }));
+    selected = null; render();
+  });
+
+  var total = ROUNDS[0].minutes * 60, remaining = total, ticking = null;
+  function showTime() {
+    var m = Math.floor(remaining / 60), sec = remaining % 60;
+    var el = $("timer"); el.textContent = m + ":" + (sec < 10 ? "0" : "") + sec;
+    el.classList.toggle("low", remaining <= 30);
+  }
+  function resetTimer() {
+    if (ticking) { clearInterval(ticking); ticking = null; }
+    total = ROUNDS[current].minutes * 60; remaining = total;
+    $("timer-btn").textContent = "Start timer"; showTime();
+  }
+  $("timer-btn").addEventListener("click", function () {
+    var btn = $("timer-btn");
+    if (ticking) { clearInterval(ticking); ticking = null; btn.textContent = "Resume timer"; return; }
+    if (remaining <= 0) remaining = total;
+    btn.textContent = "Pause timer";
+    ticking = setInterval(function () {
+      remaining--; showTime();
+      if (remaining <= 0) { clearInterval(ticking); ticking = null; btn.textContent = "Restart timer"; $("timer").textContent = "Time\u2019s up"; }
+    }, 1000);
+  });
+  document.querySelectorAll(".tab").forEach(function (tb) {
+    tb.addEventListener("click", function () { current = Number(tb.dataset.round); selected = null; render(); resetTimer(); });
+  });
+
+  showTime();
+  render();
+})();
+</script>
+</body>
+</html>
